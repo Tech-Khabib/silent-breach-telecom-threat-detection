@@ -1,0 +1,49 @@
+<dashboard version="1.1" theme="dark">
+  <label>Silent Breach Detection: SIM Swap &amp; HLR Monitor</label>
+  <description>Correlates telecom logs to detect account takeovers and SS7/HLR manipulation.</description>
+  <row>
+    <panel>
+      <title>Recent SIM Swaps (IMSI Changes)</title>
+      <single>
+        <search>
+          <query>index=telecom sourcetype=telecom_cdrs EventCode="IMSI_CHANGE" | stats count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[5,10]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Unauthorized HLR Access Attempts</title>
+      <single>
+        <search>
+          <query>index=telecom sourcetype=hlr_audit action="MOD_SUB" src_ip!="10.0.0.0/8" | stats count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xdc4e41"]</option>
+        <option name="rangeValues">[0]</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Anomalous Geolocation Logins Post-SIM Swap</title>
+      <table>
+        <search>
+          <query>index=telecom sourcetype=auth_logs | eval is_anomalous=if(Country!="Nigeria" AND Country!="USA", "Yes", "No") | where is_anomalous="Yes" | table _time, MSISDN, src_ip, City, Country, action</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

@@ -1,0 +1,17 @@
+// Query 1: Detect Impossible Travel after IMSI Change (SIM Swap Indicator)
+index=telecom sourcetype=auth_logs OR sourcetype=telecom_cdrs 
+| transaction MSISDN maxspan=24h 
+| search EventCode="IMSI_CHANGE" AND action="login_success"
+| eval time_diff = abs(_time - last_time)
+| eval distance_km = [your_geo_distance_macro(lat1, lon1, lat2, lon2)]
+| eval speed_kmh = distance_km / (time_diff / 3600)
+| where speed_kmh > 800
+| table _time, MSISDN, old_IMSI, new_IMSI, src_ip, City, Country, speed_kmh
+
+// Query 2: Detect Unauthorized HLR Administrative Access
+index=telecom sourcetype=hlr_audit
+| search action="MOD_SUB" OR action="UPDATE_LOCATION"
+| lookup approved_admin_ips ip AS src_ip OUTPUT is_approved
+| where is_approved="false" OR NOT in(Admin_ID, "authorized_list.csv")
+| stats count by _time, Admin_ID, src_ip, MSISDN, action
+| sort - _time
